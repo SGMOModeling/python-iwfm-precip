@@ -184,16 +184,7 @@ def ClipRasterMulti(inputList):
     # unpack list from function input
     inRaster, clipFeature, outWorkspace = inputList
     
-    # Use the input raster name to generate a default output name
-    inRasterName, inRasterExt = os.path.splitext(os.path.basename(inRaster))
-    outRasterName = "{0}_clip{1}".format(inRasterName, inRasterExt)
-    outClipRaster = os.path.join(outWorkspace, outRasterName)
-    
-    # Clip raster to geometry of the feature class specified by the user
-    #arcpy.Clip_management(inRaster, "#", outClipRaster, clipFeature, "#", "ClippingGeometry")
-    arcpy.Clip_management(inRaster, "#", outClipRaster, clipFeature, "#", "NONE")
-    
-    return outClipRaster
+    return ClipRaster(inRaster, clipFeature, outWorkspace)
 
 def ConvertRasterToPoints(inRaster, outWorkspace):
     ''' converts a raster to points and returns the name of the point feature class '''
@@ -213,15 +204,7 @@ def ConvertRasterToPointsMulti(inputDataList):
     # Unpack list from function input
     inRaster, outWorkspace = inputDataList
     
-    # Use the input raster name to generate a default output name
-    inRasterName = os.path.splitext(os.path.basename(inRaster))[0]
-    outPointFeatureName = "{0}.shp".format(inRasterName)
-    outPointFeature = os.path.join(outWorkspace, outPointFeatureName)
-    
-    # Convert raster to point feature class
-    arcpy.RasterToPoint_conversion(inRaster, outPointFeature, "Value")
-    
-    return outPointFeature
+    return ConvertRasterToPoints(inRaster, outWorkspace)
 
 def CreateFishnetFeature(inRaster, outWorkspace):
     ''' creates a polyline fishnet feature class and returns it's name '''
@@ -264,37 +247,7 @@ def CreateFishnetFeatureMulti(inputDataList):
     # unpack list from function input
     inRaster, outWorkspace = inputDataList
     
-    # Get properties from raster dataset for use in generating fishnet
-    inRasterName, numRows, numCols, xMin, yMin, xMax, yMax = GetPropertiesFromRaster(inRaster)
-    
-    # Use the input raster name to generate a default output name for the fishnet feature class
-    inRasterBaseName = os.path.splitext(inRasterName)[0]
-    if "clip" in inRasterBaseName:
-        outFishnetFeatureName = "{0}.shp".format(inRasterBaseName.replace("clip", "fishnet"))
-    else:
-        outFishnetFeatureName = "{0}_fishnet.shp".format(inRasterBaseName)
-    
-    outFishnetFeature = os.path.join(outWorkspace, outFishnetFeatureName)
-    
-    # Set origin and rotation of fishnet using extent properties
-    # rotation is set by the difference in the x-values in the origin coordinate and the y-axis coordinate
-    originCoordinate = "{0} {1}".format(xMin, yMin)
-    yAxisCoordinate = "{0} {1}".format(xMin, yMax)
-    
-    # Create fishnet using clipped rasters
-    arcpy.CreateFishnet_management(outFishnetFeature,
-                                   originCoordinate,
-                                   yAxisCoordinate,
-                                   0,
-                                   0,
-                                   numRows,
-                                   numCols,
-                                   "#",
-                                   "NO_LABELS",
-                                   inRaster,
-                                   "POLYLINE")
-    
-    return outFishnetFeature
+    return CreateFishnetFeature(inRaster, outWorkspace)
 
 def ConvertFishnetToPolygon(inFishnetFeature, inPointFeature, outWorkspace):
     ''' converts the fishnet polyline features to polygons and assigns
@@ -320,19 +273,7 @@ def ConvertFishnetToPolygonMulti(inputList):
     # unpack list of input variables
     inFishnetFeature, inPointFeature, outWorkspace = inputList
     
-    # Define name and location of output polygon feature class
-    inFishnetName = os.path.basename(inFishnetFeature)
-    outFeatureName = inFishnetName.replace("_fishnet", "")
-    outPolygonFeature = os.path.join(outWorkspace, outFeatureName)
-
-    # Convert Features to Polygons
-    arcpy.FeatureToPolygon_management(inFishnetFeature,
-                                      outPolygonFeature,
-                                      "#",
-                                      "ATTRIBUTES",
-                                      inPointFeature)
-
-    return outPolygonFeature
+    return ConvertFishnetToPolygon(inFishnetFeature, inPointFeature, outWorkspace)
 
 def IntersectFeatures(referenceFeatureClass, targetFeatureClass, outWorkspace):
     ''' generates a new feature class that is the result of intersecting two input feature classes '''
@@ -355,18 +296,7 @@ def IntersectFeaturesMulti(inputList):
     # unpack list of input variables
     referenceFeatureClass, targetFeatureClass, outWorkspace = inputList
     
-    # Define name and location of output intersection feature class
-    inFeatureClassName, inFeatureClassExt = os.path.splitext(os.path.basename(targetFeatureClass))
-    outIntersectFeatureName = "{0}_intersect{1}".format(inFeatureClassName, inFeatureClassExt)
-    outIntersectFeature = os.path.join(outWorkspace, outIntersectFeatureName)
-
-    # list features to intersect for input to Intersect tool
-    intersectFeatures = [referenceFeatureClass, targetFeatureClass]
-
-    # Intersect Features
-    arcpy.Intersect_analysis(intersectFeatures, outIntersectFeature)
-
-    return outIntersectFeature
+    return IntersectFeatures(referenceFeatureClass, targetFeatureClass, outWorkspace)
 
 def MultiProcess(func, funcArgList):
     ''' wrapper function to create a processing pool and map a function to it '''
@@ -533,17 +463,17 @@ if __name__ == '__main__':
     rasterList = [r'D:\ppt\2015\prism_ppt_us_30s_201509.bil', r'D:\ppt\2015\prism_ppt_us_30s_201510.bil', r'D:\ppt\2015\prism_ppt_us_30s_201511.bil', r'D:\ppt\2015\prism_ppt_us_30s_201512.bil']
     ##############################################################
     # inWorkspace could be a geodatabase, folder, list of folders, or a text file
-    inWorkspace = r'D:\ppt'
-    writeToFileFlag = True
+    inWorkspace = r'C:\Users\hatch\Desktop\C2VSimFG\Precip\RastersToProcess.txt'
+    writeToFileFlag = False
     outRasterListFileName = 'RastersToProcess.txt'
     writeToFileOnly = False
     inUnits = 'millimeters'
     outUnits = 'inches'
-    aoiFeature = r'C:\Temp\C2VSimFG-BETA_GIS\Shapefiles\C2VSimFG_Elements_SmallWatersheds_GCS.shp'
+    aoiFeature = r'C:\Users\hatch\Desktop\C2VSimFG\Precip\C2VSimFG_Elements_SmallWatersheds_GCS.shp'
     aoiIDField = 'ModelID'
-    outWorkspace = r'C:\Temp\C2VSimFG'
+    outWorkspace = r'C:\Users\hatch\Desktop\C2VSimFG\Precip'
     outFileName = 'C2VSimFG_Precip.dat'
-    mode = 'test'
+    mode = 'process'
     ##############################################################
     # Define derived variables
     ##############################################################
@@ -552,7 +482,8 @@ if __name__ == '__main__':
     else:
         # Generate a list of rasters from inWorkspace
         inRastersList = []
-        for wkspace in inWorkspace:
+        for wkspace in [inWorkspace]:
+            print(wkspace)
             if IsGeodatabase(wkspace):
                 if inRastersList == None:
                     inRastersList = GetAllRastersFromGeodatabase(wkspace)
