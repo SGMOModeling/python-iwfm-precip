@@ -171,9 +171,9 @@ def ClipRaster(inRaster, clipFeature, outWorkspace):
     outRasterName = "{0}_clip{1}".format(inRasterName, inRasterExt)
     outClipRaster = os.path.join(outWorkspace, outRasterName)
     
-    # Clip raster to geometry of the feature class specified by the user
-    #arcpy.Clip_management(inRaster, "#", outClipRaster, clipFeature, "#", "ClippingGeometry")
-    arcpy.Clip_management(inRaster, "#", outClipRaster, clipFeature, "#", "NONE")
+    if not os.path.exists(outClipRaster):
+        # Clip raster to geometry of the feature class specified by the user
+        arcpy.Clip_management(inRaster, "#", outClipRaster, clipFeature, "#", "NONE")
     
     return outClipRaster
 
@@ -194,8 +194,9 @@ def ConvertRasterToPoints(inRaster, outWorkspace):
     outPointFeatureName = "{0}.shp".format(inRasterName)
     outPointFeature = os.path.join(outWorkspace, outPointFeatureName)
     
-    # Convert raster to point feature class
-    arcpy.RasterToPoint_conversion(inRaster, outPointFeature, "Value")
+    if not os.path.exists(outPointFeature):
+        # Convert raster to point feature class
+        arcpy.RasterToPoint_conversion(inRaster, outPointFeature, "Value")
     
     return outPointFeature
 
@@ -226,18 +227,19 @@ def CreateFishnetFeature(inRaster, outWorkspace):
     originCoordinate = "{0} {1}".format(xMin, yMin)
     yAxisCoordinate = "{0} {1}".format(xMin, yMax)
     
-    # Create fishnet using clipped rasters
-    arcpy.CreateFishnet_management(outFishnetFeature,
-                                   originCoordinate,
-                                   yAxisCoordinate,
-                                   0,
-                                   0,
-                                   numRows,
-                                   numCols,
-                                   "#",
-                                   "NO_LABELS",
-                                   inRaster,
-                                   "POLYLINE")
+    if not os.path.exists(outFishnetFeature):
+        # Create fishnet using clipped rasters
+        arcpy.CreateFishnet_management(outFishnetFeature,
+                                       originCoordinate,
+                                       yAxisCoordinate,
+                                       0,
+                                       0,
+                                       numRows,
+                                       numCols,
+                                       "#",
+                                       "NO_LABELS",
+                                       inRaster,
+                                       "POLYLINE")
     
     return outFishnetFeature
 
@@ -258,12 +260,13 @@ def ConvertFishnetToPolygon(inFishnetFeature, inPointFeature, outWorkspace):
     outFeatureName = inFishnetName.replace("_fishnet", "")
     outPolygonFeature = os.path.join(outWorkspace, outFeatureName)
 
-    # Convert Features to Polygons
-    arcpy.FeatureToPolygon_management(inFishnetFeature,
-                                      outPolygonFeature,
-                                      "#",
-                                      "ATTRIBUTES",
-                                      inPointFeature)
+    if not os.path.exists(outPolygonFeature):
+        # Convert Features to Polygons
+        arcpy.FeatureToPolygon_management(inFishnetFeature,
+                                          outPolygonFeature,
+                                          "#",
+                                          "ATTRIBUTES",
+                                          inPointFeature)
 
     return outPolygonFeature
 
@@ -286,8 +289,9 @@ def IntersectFeatures(referenceFeatureClass, targetFeatureClass, outWorkspace):
     # list features to intersect for input to Intersect tool
     intersectFeatures = [referenceFeatureClass, targetFeatureClass]
 
-    # Intersect Features
-    arcpy.Intersect_analysis(intersectFeatures, outIntersectFeature)
+    if not os.path.exists(outIntersectFeature):
+        # Intersect Features
+        arcpy.Intersect_analysis(intersectFeatures, outIntersectFeature)
 
     return outIntersectFeature
 
@@ -388,7 +392,7 @@ C    Principal Contact:
 C          Tariq N. Kadir, PE, Senior Engineer, DWR
 C          (916) 653-3513, kadir@water.ca.gov
 C
-C   SGMA Contact:
+C    SGMA Contact:
 C          Tyler Hatch, PhD, PE, Senior Engineer, DWR
 C          (916) 651-7014, tyler.hatch@water.ca.gov
 C
