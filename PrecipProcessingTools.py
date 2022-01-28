@@ -168,7 +168,8 @@ def ClipRaster(inRaster, clipFeature, outWorkspace):
     
     # Use the input raster name to generate a default output name
     inRasterName, inRasterExt = os.path.splitext(os.path.basename(inRaster))
-    outRasterName = "{0}_clip{1}".format(inRasterName, inRasterExt)
+    #outRasterName = "{0}_clip{1}".format(inRasterName, inRasterExt)
+    outRasterName = "{0}_clip.bil".format(inRasterName)
     outClipRaster = os.path.join(outWorkspace, outRasterName)
     
     if not os.path.exists(outClipRaster):
@@ -309,21 +310,94 @@ def MultiProcess(func, funcArgList):
     pool.close()
     return resultList
 
-def ParseDateFromFileName(inFileName, fmt="%m/%d/%Y_24:00"):
-    ''' use regex to parse dates in YYYYMM, YYYYM, YYYY_MM, or YYYY_M format and return the date as a string in the desired format '''
-
-    # find date between 1900 and 2099 within basename of provided file
-    expr = re.findall(r"19\d{2}0?[1-9](?!\d+)|19\d{2}1[0-2](?!\d+)|20\d{2}0?[1-9](?!\d+)|20\d{2}1[0-2](?!\d+)|19\d{2}_0?[1-9](?!\d+)|19\d{2}_1[0-2](?!\d+)|20\d{2}_0?[1-9](?!\d+)|20\d{2}_1[0-2](?!\d+)", os.path.basename(inFileName))[0]
-
-    # determine the format of the expression and parse accordingly
-    if "_" not in expr:
-        fileDate = datetime.datetime.strptime(expr, "%Y%m")
-    else:
-        fileDate = datetime.datetime.strptime(expr, "%Y_%m")
+def ParseDateFromFileName(inFileName):
+    ''' parse dates of various types from a file name 
+    Parameters
+    ----------
+    inFileName : str
+        file name containing a date to parse
+             
+    Returns
+    -------
+    datetime.datetime
+        datetime object
+    '''
+    # regex expression for YYYYMM
+    expr1 = re.compile(r"19\d{2}0?[1-9](?!\d+)"
+                       r"|19\d{2}1?[0-2](?!\d+)"
+                       r"|20\d{2}0?[1-9](?!\d+)"
+                       r"|20\d{2}1[0-2](?!\d+)")
     
+    match1 = re.search(expr1, inFileName)
+    
+    # regex expression for YYYY_MM
+    expr2 = re.compile(r"19\d{2}_0?[1-9](?!\d+)"
+                       r"|19\d{2}_1[0-2](?!\d+)"
+                       r"|20\d{2}_0?[1-9](?!\d+)"
+                       r"|20\d{2}_1[0-2](?!\d+)")
+    
+    match2 = re.search(expr2, inFileName)
+    
+    
+    # regex expression for YYYYmon
+    expr3 = re.compile(r"19\d{2}[a-zA-Z]{3}"
+                       r"|20\d{2}[a-zA-Z]{3}")
+    
+    match3 = re.search(expr3, inFileName)
+    
+    if match1:
+        dateString = match1.group()
+        fileDate = datetime.datetime.strptime(dateString, '%Y%m')
+        
+    elif match2:
+        dateString = match2.group()
+        fileDate = datetime.datetime.strptime(dateString, '%Y_%m')
+        
+    elif match3:
+        dateString = match3.group()
+        fileDate = datetime.datetime.strptime(dateString, '%Y%b')
+        
+    return fileDate
+        
+def FormatIWFMDate(fileDate, fmt='%m/%d/%Y_24:00'):
+    ''' formats a datetime object to a end of month string
+    
+    Parameters
+    ----------
+    fileDate : datetime.datetime
+        date to format
+    
+    fmt : str
+        python datetime format
+    
+    Returns
+    -------
+    str
+        string formatted date following the format given by fmt    
+    '''
     modelDate = datetime.datetime.strftime(LastDayOfMonth(fileDate), fmt)
 
     return modelDate
+    
+def OrderFilesByDate(features):
+    ''' organizes and sorts filenames by date 
+    
+    Parameters
+    ----------
+    features : list
+        list of filenames needing to be sorted by date
+        
+    Returns
+    -------
+    pd.DataFrame
+        pandas DataFrame object containing filenames, dates, and formatted text dates
+    '''
+    df = pd.DataFrame(data=features, columns=['FileNames'])
+    df['Date'] = df.apply(lambda row: ParseDateFromFileName(row['FileNames']), axis=1)
+    df.sort_values(by='Date', inplace=True)
+    df['TextDate'] = df.apply(lambda row: LastDayOfMonth(row['Date']).strftime('%m/%d/%Y_24:00'), axis=1)
+    
+    return df
 
 def AreaWeightValuesFromFeatureClass(inFeature, inValueUnits, outValueUnits, inIDField, inValueField="grid_code", inAreaField="SHAPE@AREA"):
     ''' performs area weighting on value field and groups to a unique Identifier '''
@@ -350,13 +424,13 @@ C
 C             Project:  C2VSim Fine Grid (C2VSimFG)
 C                       California Central Valley Groundwater-Surface Water Simulation Model
 C             Filename: C2VSimFG_Precip.dat
-C             Version:  C2VSimFG_BETA     2018-05-01
+C             Version:  C2VSimFG_v1.01     2021-04-01
 C
 C*******************************************************************************
 C
-C                        ***** Beta Model Disclaimer *****
+C                        ***** Model Disclaimer *****
 C
-C          This is a beta version of C2VSimFG and is subject to change.  Users 
+C          This is Version 1.01 of C2VSimFG and is subject to change.  Users 
 C          of this version should be aware that this model is undergoing active
 C          development and adjustment. Users of this model do so at their own
 C          risk subject to the GNU General Public License below. The Department 
@@ -369,7 +443,7 @@ C
 C*******************************************************************************
 C
 C  California Central Valley Groundwater-Surface Water Flow Model (C2VSim)
-C  Copyright (C) 2012-2018
+C  Copyright (C) 2012-2021
 C  State of California, Department of Water Resources
 C
 C  This model is free. You can redistribute it and/or modify it
@@ -385,16 +459,16 @@ C
 C  The GNU General Public License is available from the Free Software
 C  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 C
-C  For technical support, e-mail: IWFMtechsupport@water.ca.gov
+C  For technical support, e-mail: c2vsimfgtechsupport@water.ca.gov
 C
 C
 C    Principal Contact:
-C          Tariq N. Kadir, PE, Senior Engineer, DWR
-C          (916) 653-3513, kadir@water.ca.gov
-C
-C    SGMA Contact:
-C          Tyler Hatch, PhD, PE, Senior Engineer, DWR
+C          Tyler Hatch, PhD, PE, Supervising Engineer, DWR
 C          (916) 651-7014, tyler.hatch@water.ca.gov
+C
+C    IWFM Contact:
+C          Emin Can Dogrul, PhD, PE, Senior Engineer, DWR
+C          (916) 654-7018, dogrul@water.ca.gov
 C
 C*******************************************************************************
 C                             File Description:
@@ -467,15 +541,15 @@ if __name__ == '__main__':
     rasterList = [r'D:\ppt\2015\prism_ppt_us_30s_201509.bil', r'D:\ppt\2015\prism_ppt_us_30s_201510.bil', r'D:\ppt\2015\prism_ppt_us_30s_201511.bil', r'D:\ppt\2015\prism_ppt_us_30s_201512.bil']
     ##############################################################
     # inWorkspace could be a geodatabase, folder, list of folders, or a text file
-    inWorkspace = r'C:\Users\hatch\Desktop\C2VSimFG\Precip\RastersToProcess.txt'
+    inWorkspace = r'F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\RastersToProcess.txt'
     writeToFileFlag = False
     outRasterListFileName = 'RastersToProcess.txt'
     writeToFileOnly = False
     inUnits = 'millimeters'
     outUnits = 'inches'
-    aoiFeature = r'C:\Users\hatch\Desktop\C2VSimFG\Precip\C2VSimFG_Elements_SmallWatersheds_GCS.shp'
+    aoiFeature = r'F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\C2VSimFG_Elements_SmallWatersheds_GCS.shp'
     aoiIDField = 'ModelID'
-    outWorkspace = r'C:\Users\hatch\Desktop\C2VSimFG\Precip'
+    outWorkspace = r'F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip'
     outFileName = 'C2VSimFG_Precip.dat'
     mode = 'process'
     ##############################################################
@@ -596,6 +670,9 @@ if __name__ == '__main__':
             #################################################################
             # single processing
             #################################################################
+            
+            # prepare features for writing to file
+            outputFeatures = OrderFilesByDate(intersectFeatureList)
 
             # Create output file
             outFile = os.path.join(outWorkspace, outFileName)
@@ -605,28 +682,15 @@ if __name__ == '__main__':
                 f.write(PrecipHeader())
                 f.write(PrecipSpecs(featureCount, FACTRN(outUnits), 1, 0))
                 f.write(PrecipData(featureCount))
-                for fc in sorted(intersectFeatureList):
-
-                    # parse and format date from table name for printing to output file
-                    try:
-                        modelDate = ParseDateFromFileName(inFileName=fc, fmt='%m/%d/%Y_24:00')
-                    except IndexError:
-                        exc = sys.exc_info()
-                        print("{0}: date could not be read from filename: {1}".format(exc[0].__name__, fc))
-                        print("files should have dates of the following format:\n" + \
-                              "    1. Years should be between 1900 and 2099\n" + \
-                              "    2. Format:\n" + \
-                              "        a. YYYYMM\n" + \
-                              "        b. YYYYM\n" + \
-                              "        c. YYYY_MM\n" + \
-                              "        d. YYYY_M\n")
-                        sys.exit(1)
+                for dt in outputFeatures['TextDate'].to_list():
+                    # get name of feature class
+                    fc = outputFeatures[outputFeatures['TextDate'] == dt]['FileNames'].to_numpy()[0]
 
                     # convert feature class table to array for processing
                     values = AreaWeightValuesFromFeatureClass(fc, inUnits, outUnits, aoiIDField, 'grid_code', 'SHAPE@AREA')
                     
                     if len(values) == featureCount:
-                        f.write(modelDate)
+                        f.write(dt)
                         f.write(('{:>10.3}'*len(values)).format(*values))
                         f.write('\n')
                     else:
@@ -704,6 +768,9 @@ if __name__ == '__main__':
         # single processing
         #################################################################
 
+        # prepare features for writing to file
+        outputFeatures = OrderFilesByDate(intersectFeatureList)
+
         # Create output file
         outFile = os.path.join(outWorkspace, outFileName)
 
@@ -712,28 +779,15 @@ if __name__ == '__main__':
             f.write(PrecipHeader())
             f.write(PrecipSpecs(featureCount, FACTRN(outUnits), 1, 0))
             f.write(PrecipData(featureCount))
-            for fc in sorted(intersectFeatureList):
-
-                # parse and format date from table name for printing to output file
-                try:
-                    modelDate = ParseDateFromFileName(inFileName=fc, fmt='%m/%d/%Y_24:00')
-                except IndexError:
-                    exc = sys.exc_info()
-                    print("{0}: date could not be read from filename: {1}".format(exc[0].__name__, fc))
-                    print("files should have dates of the following format:\n" + \
-                          "    1. Years should be between 1900 and 2099\n" + \
-                          "    2. Format:\n" + \
-                          "        a. YYYYMM\n" + \
-                          "        b. YYYYM\n" + \
-                          "        c. YYYY_MM\n" + \
-                          "        d. YYYY_M\n")
-                    sys.exit(1)
+            for dt in outputFeatures['TextDate'].to_list():
+                # get name of feature class
+                fc = outputFeatures[outputFeatures['TextDate'] == dt]['FileNames'].to_numpy()[0]
 
                 # convert feature class table to array for processing
                 values = AreaWeightValuesFromFeatureClass(fc, inUnits, outUnits, aoiIDField, 'grid_code', 'SHAPE@AREA')
-                
+                    
                 if len(values) == featureCount:
-                    f.write(modelDate)
+                    f.write(dt)
                     f.write(('{:>10.3}'*len(values)).format(*values))
                     f.write('\n')
                 else:
