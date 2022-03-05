@@ -1,0 +1,74 @@
+# input workspace. this could be a geodatabase, folder, list of folders, or a text file
+F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\RastersToProcess.txt
+
+# flag telling program to write names of rasters to process to a file
+False
+
+# out_raster_list_file_name 
+RastersToProcess.txt
+
+# write_to_file_only
+False
+
+# in_units
+millimeters
+
+# out_units
+inches
+
+# aoi_feature
+F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\C2VSimFG_Elements_SmallWatersheds_GCS.shp
+
+# aoi_id_field
+ModelID
+
+# out_workspace
+F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip
+
+# project_short_name
+C2VSim Fine Grid (C2VSimFG)
+
+# project_long_name
+California Central Valley Groundwater-Surface Water Simulation Model
+
+# model_name
+California Central Valley Groundwater-Surface Water Flow Model (C2VSim)
+
+# model version
+C2VSimFG_v1.01
+
+# organization
+State of California, Department of Water Resources
+
+# tech_support_email
+c2vsimfgtechsupport@water.ca.gov
+
+# contact_name
+Tyler Hatch, PhD, PE, Supervising Engineer, DWR
+
+# contact_email
+tyler.hatch@water.ca.gov
+
+# disclaimer text
+disclaimer.txt
+
+# n_ts_update (this is the same as NSPRN in the IWFM Precipitation Data File)
+# Number of time steps to update the precipitation data
+# Enter any number if time-tracking option is on
+1
+
+# ts_frequency (this is the same as NFQRN in the IWFM Precipitation Data File)
+# Repetition frequency of the precipitation data
+# Enter 0 if full time series data is supplied
+# Enter any number if time-tracking option is on
+0
+
+# dss_file (blank if dss_file is not used
+# Writing to a dss file is not currently supported
+''
+
+# out_file_name
+C2VSimFG_Precip.dat
+
+# mode {test or process}
+process

@@ -46,6 +46,26 @@ from geoprocessing import (
     area_weight_values_from_feature_class
 )
 
+def read_from_command_line(args):
+    ''' returns a list of inputs provided in a text file for running a program '''
+    if len(args) == 2:
+        with open(args[-1], 'r') as f:
+            input_data = f.read()
+
+    elif len(args) == 1:
+        file_name = input("Please specify the name of the input file:\n")
+        with open(file_name, 'r') as f:
+            input_data = f.read()
+
+    else:
+        raise TypeError("Too many arguments were provided.")
+
+    input_list = input_data.split('\n')
+
+    clean_list = [item for item in input_list if len(item) !=0 and item[0] != '#']
+
+    return clean_list
+
 if __name__ == '__main__':
 
     # store time processing begins
@@ -60,40 +80,55 @@ if __name__ == '__main__':
                    r'F:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201511.bil', 
                    r'F:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201512.bil']
     ##############################################################
-    # in_workspace could be a geodatabase, folder, list of folders, or a text file
-    in_workspace = r'F:\Tyler\DWR\SGMP\Modeling\ppt'
-    write_to_file_flag = False
-    out_raster_list_file_name = 'RastersToProcess.txt'
-    write_to_file_only = False
-    in_units = 'millimeters'
-    out_units = 'inches'
-    aoi_feature = r'F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\C2VSimFG_Elements_SmallWatersheds_GCS.shp'
-    aoi_id_field = 'ModelID'
-    out_workspace = r'C:\Users\hatch\Desktop\raster\PRISMPrecip'
-    project_short_name = 'C2VSim Fine Grid (C2VSimFG)'
-    project_long_name = 'California Central Valley Groundwater-Surface Water Simulation Model'
-    model_name = 'California Central Valley Groundwater-Surface Water Flow Model (C2VSim)'
-    model_version = 'C2VSimFG_v1.01'
-    organization = 'State of California, Department of Water Resources'
-    tech_support_email = 'c2vsimfgtechsupport@water.ca.gov'
-    contact_name = 'Tyler Hatch, PhD, PE, Supervising Engineer, DWR'
-    contact_email = 'tyler.hatch@water.ca.gov'
-
-    d = 'This is Version 1.01 of C2VSimFG and is subject to change.  Users ' + \
-        'of this version should be aware that this model is undergoing active ' + \
-        'development and adjustment. Users of this model do so at their own ' + \
-        'risk subject to the GNU General Public License below. The Department ' + \
-        'does not guarantee the accuracy, completeness, or timeliness of the ' + \
-        'information provided. Neither the Department of Water Resources nor ' + \
-        'any of the sources of the information used by the Department in the ' + \
-        'development of this model shall be responsible for any errors or ' + \
-        'omissions, for the use, or results obtained from the use of this model.'
+    inputs_list = read_from_command_line(sys.argv)
     
-    n_ts_update = 1
-    ts_frequency = 0
-    dss_file = ''
-    out_file_name = 'C2VSimFG_Precip_test.dat'
-    mode = 'test'
+    in_workspace = inputs_list[0]
+    
+    if inputs_list[1] == 'True':
+        write_to_file_flag = True
+    elif inputs_list[1] == 'False':
+        write_to_file_flag = False
+    
+    out_raster_list_file_name = inputs_list[2]
+    
+    if inputs_list[3] == 'True':
+        write_to_file_only = True
+    elif inputs_list[3] == 'False':
+        write_to_file_only = False
+    
+    in_units = inputs_list[4]
+    out_units = inputs_list[5]
+
+    aoi_feature = inputs_list[6]
+    aoi_id_field = inputs_list[7]
+    
+    out_workspace = inputs_list[8]
+    
+    project_short_name = inputs_list[9]
+    project_long_name = inputs_list[10]
+    model_name = inputs_list[11]
+    model_version = inputs_list[12]
+    organization = inputs_list[13]
+    tech_support_email = inputs_list[14]
+    contact_name = inputs_list[15]
+    contact_email = inputs_list[16]
+
+    disclaimer_file = inputs_list[17]
+    with open(disclaimer_file, 'r') as f:
+        d = f.read().replace('\n', ' ')
+    
+    n_ts_update = int(inputs_list[18])
+    ts_frequency = int(inputs_list[19])
+    
+    if inputs_list[20] == "''":
+        dss_file = ''
+    else:
+        dss_file = inputs_list[20]
+    
+    out_file_name = inputs_list[21]
+    
+    mode = inputs_list[22]
+    
     ##############################################################
     # Define derived variables
     ##############################################################

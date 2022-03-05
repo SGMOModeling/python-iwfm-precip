@@ -1,0 +1,9 @@
+This is Version 1.01 of C2VSimFG and is subject to change.  Users
+of this version should be aware that this model is undergoing active
+development and adjustment. Users of this model do so at their own
+risk subject to the GNU General Public License below. The Department
+does not guarantee the accuracy, completeness, or timeliness of the
+information provided. Neither the Department of Water Resources nor
+any of the sources of the information used by the Department in the
+development of this model shall be responsible for any errors or
+omissions, for the use, or results obtained from the use of this model.
