@@ -2,14 +2,10 @@
 import os
 import sys
 import re
-import time
 import datetime
-import glob
 import arcpy
 
-import numpy as np
-import pandas as pd
-import multiprocessing as mp
+from timer import Timer
 
 from iwfm_file_headers import (
     write_precip_header,
@@ -17,37 +13,24 @@ from iwfm_file_headers import (
 )
 
 from geoprocessing import (
-    is_geodatabase,
-    is_folder,
-    is_text_file,
-    get_all_rasters_from_folders,
-    get_all_rasters_from_geodatabase,
-    get_all_rasters_from_file,
-    get_list_of_feature_classes,
-    last_day_of_month,
+    generate_raster_list,
     length_unit_conversion_factor,
     write_rasters_to_file,
     make_directory,
-    get_properties_from_raster,
-    clip_raster,
     clip_raster_multi,
-    convert_raster_to_points,
     convert_raster_to_points_multi,
-    create_fishnet_feature,
     create_fishnet_feature_multi,
-    convert_fishnet_to_polygon,
     convert_fishnet_to_polygon_multi,
-    intersect_features,
     intersect_features_multi,
     multi_process,
-    parse_date_from_file_name,
-    format_IWFM_date,
     order_files_by_date,
     area_weight_values_from_feature_class
 )
 
 def read_from_command_line(args):
-    ''' returns a list of inputs provided in a text file for running a program '''
+    """
+    Return a list of inputs provided in a text file for running a program
+    """
     if len(args) == 2:
         with open(args[-1], 'r') as f:
             input_data = f.read()
@@ -66,19 +49,41 @@ def read_from_command_line(args):
 
     return clean_list
 
+def filter_monthly(raster_list):
+    """
+    Filter raster list by date
+    """
+    expr = re.compile(
+        r"19\d{2}0?[1-9](?!\d+)"
+        r"|19\d{2}1?[0-2](?!\d+)"
+        r"|20\d{2}0?[1-9](?!\d+)"
+        r"|20\d{2}1[0-2](?!\d+)"
+    )
+
+    monthly_rasters = []
+    for raster in raster_list:
+        match = re.search(expr, raster)
+        
+        if match:
+            monthly_rasters.append(raster)
+
+    return monthly_rasters
+
 if __name__ == '__main__':
 
     # store time processing begins
-    start_time = time.time()
+    #start_time = time.time()
+    timer = Timer()
+    timer.start()
 
     ##############################################################
-    # Define explicit variables
+    # input variables
     ##############################################################
     # raster_list is for testing purposes only
-    raster_list = [r'F:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201509.bil', 
-                   r'F:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201510.bil', 
-                   r'F:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201511.bil', 
-                   r'F:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201512.bil']
+    raster_list = [r'E:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201509.bil', 
+                   r'E:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201510.bil', 
+                   r'E:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201511.bil', 
+                   r'E:\Tyler\DWR\SGMP\Modeling\ppt\2015\prism_ppt_us_30s_201512.bil']
     ##############################################################
     inputs_list = read_from_command_line(sys.argv)
     
@@ -135,28 +140,8 @@ if __name__ == '__main__':
     if mode == 'test':
         in_rasters_list = raster_list
     else:
-        # Generate a list of rasters from in_workspace
-        in_rasters_list = []
-        for wkspace in [in_workspace]:
-            print(wkspace)
-            if is_geodatabase(wkspace):
-                if in_rasters_list is None:
-                    in_rasters_list = get_all_rasters_from_geodatabase(wkspace)
-                else:
-                    in_rasters_list.extend(get_all_rasters_from_geodatabase(wkspace))
-            elif is_folder(in_workspace):
-                if in_rasters_list is None:
-                    in_rasters_list = get_all_rasters_from_folders(wkspace)
-                else:
-                    in_rasters_list.extend(get_all_rasters_from_folders(wkspace))
-            elif is_text_file(in_workspace):
-                if in_rasters_list is None:
-                    in_rasters_list = get_all_rasters_from_file(wkspace)
-                else:
-                    in_rasters_list.extend(get_all_rasters_from_file(wkspace))
-            else:
-                print('format of in_workspace was not compatible. Must contain one or more folders, geodatabases, or text files')
-                sys.exit(1)
+        rasters_list = generate_raster_list(in_workspace)
+        in_rasters_list = filter_monthly(rasters_list)
 
     # Determine the length of the list of rasters
     len_raster_list = len(in_rasters_list)
@@ -169,8 +154,21 @@ if __name__ == '__main__':
     print('There are {0} rasters to process.'.format(len_raster_list))
     
     if write_to_file_flag:
-        print("Writing rasters to {0} only.".format(os.path.join(out_workspace, out_raster_list_file_name)))
-        write_rasters_to_file(in_rasters_list, out_workspace, out_raster_list_file_name)
+        
+        message = "Writing rasters to {0} only.".format(
+            os.path.join(
+                out_workspace, 
+                out_raster_list_file_name
+            )
+        )
+        
+        print(message)
+        
+        write_rasters_to_file(
+            in_rasters_list, 
+            out_workspace, 
+            out_raster_list_file_name
+        )
 
     if not write_to_file_only:
         
@@ -193,7 +191,7 @@ if __name__ == '__main__':
         intersect_dir = make_directory(out_workspace, "Intersect")
 
         #################################################################
-        # multiprocessing
+        # Process Raster Data (multiprocessing)
         #################################################################
 
         print("Clipping Rasters")
@@ -243,7 +241,7 @@ if __name__ == '__main__':
         intersect_feature_list = multi_process(intersect_features_multi, intersect_data)
 
         #################################################################
-        # single processing
+        # Generate IWFM Input File (sequential, not multiprocessing)
         #################################################################
 
         # prepare features for writing to file
@@ -293,18 +291,5 @@ if __name__ == '__main__':
 
     print("Processing Complete!")
 
-    # store time processing ends
-    end_time = time.time()
-
-    run_time = end_time - start_time
-
-    # convert duration to hours, minutes, seconds
-    minutes, seconds = divmod(run_time, 60)
-    hours, minutes = divmod(minutes, 60)
-        
-    if hours > 0:
-        print("{}{} HOURS {} MINUTES {:6.3f} SECONDS".format('TOTAL RUN TIME: ', hours, minutes, seconds))
-    elif minutes > 0:
-        print("{}{} MINUTES {:6.3f} SECONDS".format('TOTAL RUN TIME: ', minutes, seconds))
-    else:
-        print("{}{:6.3f} SECONDS".format('TOTAL RUN TIME: ', seconds))
+    timer.stop()
+    timer.print_run_time()
