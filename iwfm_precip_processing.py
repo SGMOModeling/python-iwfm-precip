@@ -3,24 +3,22 @@ import os
 import sys
 import re
 import datetime
-import arcpy
 
 from timer import Timer
 
 from iwfm_file_headers import write_precip_header, write_precip_specs
 
+from processing import make_directory, write_rasters_to_file, order_files_by_date, multi_process
+
 from geoprocessing import (
     generate_raster_list,
     length_unit_conversion_factor,
-    write_rasters_to_file,
-    make_directory,
+    count_features,
     clip_raster_multi,
     convert_raster_to_points_multi,
     create_fishnet_feature_multi,
     convert_fishnet_to_polygon_multi,
     intersect_features_multi,
-    multi_process,
-    order_files_by_date,
     area_weight_values_from_feature_class,
 )
 
@@ -167,7 +165,7 @@ if __name__ == "__main__":
     if not write_to_file_only:
 
         # Count number of polygons in aoi feature class
-        feature_count = int(arcpy.GetCount_management(aoi_feature)[0])
+        feature_count = count_features(aoi_feature)
 
         # Make a directory called Clipped to hold the clipped rasters for later processing
         clipped_dir = make_directory(out_workspace, "Clipped")
@@ -294,7 +292,7 @@ if __name__ == "__main__":
                     f.write(("{:>10.3}" * len(values)).format(*values))
                     f.write("\n")
                 else:
-                    raise arcpy.ExecuteError
+                    raise ValueError("the number of values ({}) does not equal the number expected ({})".format(len(values), feature_count))
 
     print("Processing Complete!")
 
