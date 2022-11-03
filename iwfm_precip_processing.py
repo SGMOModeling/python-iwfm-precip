@@ -72,7 +72,6 @@ def filter_monthly(raster_list):
 if __name__ == "__main__":
 
     # store time processing begins
-    # start_time = time.time()
     timer = Timer()
     timer.start()
 
