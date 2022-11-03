@@ -1,11 +1,14 @@
-import arcpy
 import os
-import glob
-import datetime
-import re
+import arcpy
 
 import pandas as pd
-import multiprocessing as mp
+
+from processing import (
+    get_all_rasters_from_folders,
+    get_all_rasters_from_file,
+    length_unit_conversion_factor,
+)
+
 
 def generate_raster_list(in_workspace):
     """
@@ -28,13 +31,13 @@ def generate_raster_list(in_workspace):
     """
     print(in_workspace)
     workspace_desc = arcpy.Describe(in_workspace)
-    
+
     if workspace_desc.dataType == "Workspace":
         rasters_list = get_all_rasters_from_geodatabase(in_workspace)
 
     elif workspace_desc.dataType == "Folder":
         rasters_list = get_all_rasters_from_folders(in_workspace)
-    
+
     elif workspace_desc.dataType == "TextFile":
         rasters_list = get_all_rasters_from_file(in_workspace)
 
@@ -42,19 +45,6 @@ def generate_raster_list(in_workspace):
         raise TypeError("in_workspace is not currently supported")
 
     return rasters_list
-    
-
-def get_all_rasters_from_folders(in_workspace, raster_format='.bil'):
-    """
-    Generate a list of all rasters in subfolders of the parent directory.
-    """
-    list_raster = []
-    for root, dirs, files in os.walk(in_workspace, topdown=False):
-        for name in files:
-            if name.endswith(raster_format):
-                list_raster.append(os.path.join(root, name))
-
-    return sorted(list_raster)
 
 
 def get_all_rasters_from_geodatabase(in_workspace):
@@ -65,106 +55,6 @@ def get_all_rasters_from_geodatabase(in_workspace):
     list_rasters = arcpy.ListRasters("*", "All")
 
     return sorted(list_rasters)
-
-
-def get_all_rasters_from_file(in_text_file):
-    """
-    Generate a list of rasters from a text file.
-    """
-    # open text file in read mode and read contents ignoring lines beginning with '#'
-    with open(in_text_file, "r") as text_file:
-        list_rasters = [str(line.strip()) for line in text_file if line[0] != "#"]
-
-    return sorted(list_rasters)
-
-
-def get_list_of_feature_classes(in_workspace):
-    """
-    Return a list of feature classes in the provided location.
-    """
-    list_feature_classes = glob.glob(os.path.join(in_workspace, "*.shp"))
-    return sorted(list_feature_classes)
-
-
-def last_day_of_month(in_date):
-    """
-    Generate a date for the last day of a given month.
-    """
-    next_month = in_date.replace(day=28) + datetime.timedelta(days=4)
-    return next_month - datetime.timedelta(days=next_month.day)
-
-
-def length_unit_conversion_factor(in_units, out_units):
-    """
-    Conversion factor between two different length units.
-    """
-    if in_units == "feet" and out_units == "feet":
-        return 1.0
-    if in_units == "feet" and out_units == "inches":
-        return 12.0
-    if in_units == "feet" and out_units == "meters":
-        return 12.0 / 39.37
-    if in_units == "feet" and out_units == "millimeters":
-        return 12.0 / 39.37 * 1000.0
-    if in_units == "inches" and out_units == "feet":
-        return 1.0 / 12.0
-    if in_units == "inches" and out_units == "inches":
-        return 1.0
-    if in_units == "inches" and out_units == "meters":
-        return 1.0 / 39.37
-    if in_units == "inches" and out_units == "millimeters":
-        return 1.0 / 39.37 * 1000.0
-    if in_units == "meters" and out_units == "feet":
-        return 39.37 / 12
-    if in_units == "meters" and out_units == "inches":
-        return 39.37
-    if in_units == "meters" and out_units == "meters":
-        return 1.0
-    if in_units == "meters" and out_units == "millimeters":
-        return 1000.0
-    if in_units == "millimeters" and out_units == "feet":
-        return 0.001 * 39.37 / 12.0
-    if in_units == "millimeters" and out_units == "inches":
-        return 0.001 * 39.37
-    if in_units == "millimeters" and out_units == "meters":
-        return 0.001
-    if in_units == "millimeters" and out_units == "millimeters":
-        return 1.0
-
-
-def FACTRN(out_units):
-    if out_units == "feet":
-        return 1.0
-    if out_units == "inches":
-        return 1.0 / 12.0
-    if out_units == "meters":
-        return 12.0 / 39.37
-    if out_units == "millimeters":
-        return 0.001 * 39.37 / 12.0
-
-
-def write_rasters_to_file(in_rasters_list, out_workspace, out_file_name):
-    """
-    Write rasters from a list to a text file.
-    """
-    out_file = os.path.join(out_workspace, out_file_name)
-    with open(out_file, "w") as f:
-        f.write("# Rasters To Process\n")
-        for raster in in_rasters_list:
-            f.write("{}\n".format(raster))
-
-
-def make_directory(dir_location, dir_name):
-    """
-    Create a folder of the desired name if it does not exist.
-    """
-    dir_path = os.path.join(dir_location, dir_name)
-
-    if not os.path.isdir(dir_path):
-        os.mkdir(dir_path)
-        print("Folder '{0}' Created: {1}.".format(dir_name, dir_path))
-
-    return dir_path
 
 
 def get_properties_from_raster(in_raster):
@@ -187,6 +77,12 @@ def get_properties_from_raster(in_raster):
     del raster_dataset
 
     return in_raster_name, num_rows, num_cols, x_min, y_min, x_max, y_max
+
+def count_features(in_feature):
+    """
+    Count the number of features in a feature class
+    """
+    return int(arcpy.GetCount_management(in_feature)[0])
 
 
 def clip_raster(in_raster, clip_feature, out_workspace):
@@ -378,7 +274,10 @@ def intersect_features_multi(input_list):
         reference_feature_class, target_feature_class, out_workspace
     )
 
-def process_raster(in_raster, aoi_feature, clip_dir, point_dir, fishnet_dir, polygon_dir, intersect_dir):
+
+def process_raster(
+    in_raster, aoi_feature, clip_dir, point_dir, fishnet_dir, polygon_dir, intersect_dir
+):
     """
     Processes a raster dataset to a vector polygon and intersects it with the area of interest feature class
 
@@ -392,7 +291,7 @@ def process_raster(in_raster, aoi_feature, clip_dir, point_dir, fishnet_dir, pol
 
     clip_dir : str
         output directory for clipped rasters
-    
+
     point_dir : str
         output directory for raster centroid points feature class
 
@@ -421,128 +320,18 @@ def process_raster(in_raster, aoi_feature, clip_dir, point_dir, fishnet_dir, pol
     # raster to fishnet
     print("Converting {} to fishnet".format(clipped_raster))
     fishnet_feature = create_fishnet_feature(clipped_raster, fishnet_dir)
-        
+
     # fishnet to polygons
     print("Converting {} to Polygon".format(fishnet_feature))
-    polygon_feature = convert_fishnet_to_polygon(fishnet_feature, points_feature, polygon_dir)
-      
+    polygon_feature = convert_fishnet_to_polygon(
+        fishnet_feature, points_feature, polygon_dir
+    )
+
     # intersect features
     print("Intersecting {} with {}".format(polygon_feature, aoi_feature))
     intersect_feature = intersect_features(polygon_feature, aoi_feature, intersect_dir)
 
     return intersect_feature
-
-
-def multi_process(func, func_arg_list):
-    """
-    Wrapper function to create a processing pool and map a function to it.
-    """
-    pool = mp.Pool(processes=mp.cpu_count() - 1)
-    result_list = pool.map(func, func_arg_list)
-    pool.close()
-    return result_list
-
-
-def parse_date_from_file_name(in_file_name):
-    """
-    Parse dates of various types from a file name.
-
-    Parameters
-    ----------
-    inFileName : str
-        file name containing a date to parse
-
-    Returns
-    -------
-    datetime.datetime
-        datetime object
-    """
-    # regex expression for YYYYMM
-    expr1 = re.compile(
-        r"19\d{2}0?[1-9](?!\d+)"
-        r"|19\d{2}1?[0-2](?!\d+)"
-        r"|20\d{2}0?[1-9](?!\d+)"
-        r"|20\d{2}1[0-2](?!\d+)"
-    )
-
-    match1 = re.search(expr1, in_file_name)
-
-    # regex expression for YYYY_MM
-    expr2 = re.compile(
-        r"19\d{2}_0?[1-9](?!\d+)"
-        r"|19\d{2}_1[0-2](?!\d+)"
-        r"|20\d{2}_0?[1-9](?!\d+)"
-        r"|20\d{2}_1[0-2](?!\d+)"
-    )
-
-    match2 = re.search(expr2, in_file_name)
-
-    # regex expression for YYYYmon
-    expr3 = re.compile(r"19\d{2}[a-zA-Z]{3}" r"|20\d{2}[a-zA-Z]{3}")
-
-    match3 = re.search(expr3, in_file_name)
-
-    if match1:
-        date_string = match1.group()
-        file_date = datetime.datetime.strptime(date_string, "%Y%m")
-
-    elif match2:
-        date_string = match2.group()
-        file_date = datetime.datetime.strptime(date_string, "%Y_%m")
-
-    elif match3:
-        date_string = match3.group()
-        file_date = datetime.datetime.strptime(date_string, "%Y%b")
-
-    return file_date
-
-
-def format_IWFM_date(file_date, fmt="%m/%d/%Y_24:00"):
-    """
-    Format a datetime object to an end of month string.
-
-    Parameters
-    ----------
-    file_date : datetime.datetime
-        date to format
-
-    fmt : str
-        python datetime format
-
-    Returns
-    -------
-    str
-        string formatted date following the format given by fmt
-    """
-    model_date = datetime.datetime.strftime(last_day_of_month(file_date), fmt)
-
-    return model_date
-
-
-def order_files_by_date(features):
-    """
-    Organize and sort filenames by date.
-
-    Parameters
-    ----------
-    features : list
-        list of filenames needing to be sorted by date
-
-    Returns
-    -------
-    pd.DataFrame
-        pandas DataFrame object containing filenames, dates, and formatted text dates
-    """
-    df = pd.DataFrame(data=features, columns=["FileNames"])
-    df["Date"] = df.apply(
-        lambda row: parse_date_from_file_name(row["FileNames"]), axis=1
-    )
-    df.sort_values(by="Date", inplace=True)
-    df["TextDate"] = df.apply(
-        lambda row: last_day_of_month(row["Date"]).strftime("%m/%d/%Y_24:00"), axis=1
-    )
-
-    return df
 
 
 def area_weight_values_from_feature_class(
@@ -590,9 +379,7 @@ def area_weight_values_from_feature_class(
     df = pd.DataFrame(arr)
 
     # add the total area of each field ID
-    df = df.join(
-        df.groupby(id_field)[area_field].sum(), on=id_field, rsuffix="_total"
-    )
+    df = df.join(df.groupby(id_field)[area_field].sum(), on=id_field, rsuffix="_total")
 
     # calculate the area-weighted value of each part in the output units
     df["WeightedGridCode"] = (
@@ -604,7 +391,7 @@ def area_weight_values_from_feature_class(
 
     # sum all parts by the ID
     area_weighted_values = df.groupby(id_field)["WeightedGridCode"].sum()
-    
+
     # convert resulting series to a list
     weighted_values = area_weighted_values.tolist()
 
