@@ -8,7 +8,12 @@ from timer import Timer
 
 from iwfm_file_headers import write_precip_header, write_precip_specs
 
-from processing import make_directory, write_rasters_to_file, order_files_by_date, multi_process
+from processing import (
+    make_directory,
+    write_rasters_to_file,
+    order_files_by_date,
+    multi_process,
+)
 
 from geoprocessing import (
     generate_raster_list,
@@ -292,7 +297,11 @@ if __name__ == "__main__":
                     f.write(("{:>10.3}" * len(values)).format(*values))
                     f.write("\n")
                 else:
-                    raise ValueError("the number of values ({}) does not equal the number expected ({})".format(len(values), feature_count))
+                    raise ValueError(
+                        "the number of values ({}) does not equal the number expected ({})".format(
+                            len(values), feature_count
+                        )
+                    )
 
     print("Processing Complete!")
 
