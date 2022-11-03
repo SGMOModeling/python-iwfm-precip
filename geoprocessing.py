@@ -378,6 +378,60 @@ def intersect_features_multi(input_list):
         reference_feature_class, target_feature_class, out_workspace
     )
 
+def process_raster(in_raster, aoi_feature, clip_dir, point_dir, fishnet_dir, polygon_dir, intersect_dir):
+    """
+    Processes a raster dataset to a vector polygon and intersects it with the area of interest feature class
+
+    Parameters
+    ----------
+    in_raster : str
+        path and name of raster dataset
+
+    aoi_feature : str
+        path and name of area of interest feature class
+
+    clip_dir : str
+        output directory for clipped rasters
+    
+    point_dir : str
+        output directory for raster centroid points feature class
+
+    fishnet_dir : str
+        output directory for fishnet feature class
+
+    polygon_dir : str
+        output directory for polygon feature class
+
+    intersect_dir : str
+        output directory for intersect feature class
+
+    Returns
+    -------
+    str
+        path and name of intersect feature class
+    """
+    # clip raster
+    print("Clipping {}".format(in_raster))
+    clipped_raster = clip_raster(in_raster, aoi_feature, clip_dir)
+
+    # raster to points
+    print("Converting {} to points".format(clipped_raster))
+    points_feature = convert_raster_to_points(clipped_raster, point_dir)
+
+    # raster to fishnet
+    print("Converting {} to fishnet".format(clipped_raster))
+    fishnet_feature = create_fishnet_feature(clipped_raster, fishnet_dir)
+        
+    # fishnet to polygons
+    print("Converting {} to Polygon".format(fishnet_feature))
+    polygon_feature = convert_fishnet_to_polygon(fishnet_feature, points_feature, polygon_dir)
+      
+    # intersect features
+    print("Intersecting {} with {}".format(polygon_feature, aoi_feature))
+    intersect_feature = intersect_features(polygon_feature, aoi_feature, intersect_dir)
+
+    return intersect_feature
+
 
 def multi_process(func, func_arg_list):
     """
