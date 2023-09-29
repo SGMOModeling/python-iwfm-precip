@@ -60,6 +60,8 @@ def filter_monthly(raster_list):
         r"|19\d{2}1?[0-2](?!\d+)"
         r"|20\d{2}0?[1-9](?!\d+)"
         r"|20\d{2}1[0-2](?!\d+)"
+        r"|19\d{2}(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)"
+        r"|20\d{2}(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)"
     )
 
     monthly_rasters = []
@@ -73,7 +75,6 @@ def filter_monthly(raster_list):
 
 
 if __name__ == "__main__":
-
     # store time processing begins
     timer = Timer()
     timer.start()
@@ -93,50 +94,52 @@ if __name__ == "__main__":
 
     in_workspace = inputs_list[0]
 
-    if inputs_list[1] == "True":
+    raster_format = inputs_list[1]
+
+    if inputs_list[2] == "True":
         write_to_file_flag = True
-    elif inputs_list[1] == "False":
+    elif inputs_list[2] == "False":
         write_to_file_flag = False
 
-    out_raster_list_file_name = inputs_list[2]
+    out_raster_list_file_name = inputs_list[3]
 
-    if inputs_list[3] == "True":
+    if inputs_list[4] == "True":
         write_to_file_only = True
-    elif inputs_list[3] == "False":
+    elif inputs_list[4] == "False":
         write_to_file_only = False
 
-    in_units = inputs_list[4]
-    out_units = inputs_list[5]
+    in_units = inputs_list[5]
+    out_units = inputs_list[6]
 
-    aoi_feature = inputs_list[6]
-    aoi_id_field = inputs_list[7]
+    aoi_feature = inputs_list[7]
+    aoi_id_field = inputs_list[8]
 
-    out_workspace = inputs_list[8]
+    out_workspace = inputs_list[9]
 
-    project_short_name = inputs_list[9]
-    project_long_name = inputs_list[10]
-    model_name = inputs_list[11]
-    model_version = inputs_list[12]
-    organization = inputs_list[13]
-    tech_support_email = inputs_list[14]
-    contact_name = inputs_list[15]
-    contact_email = inputs_list[16]
+    project_short_name = inputs_list[10]
+    project_long_name = inputs_list[11]
+    model_name = inputs_list[12]
+    model_version = inputs_list[13]
+    organization = inputs_list[14]
+    tech_support_email = inputs_list[15]
+    contact_name = inputs_list[16]
+    contact_email = inputs_list[17]
 
-    disclaimer_file = inputs_list[17]
+    disclaimer_file = inputs_list[18]
     with open(disclaimer_file, "r") as f:
         d = f.read().replace("\n", " ")
 
-    n_ts_update = int(inputs_list[18])
-    ts_frequency = int(inputs_list[19])
+    n_ts_update = int(inputs_list[19])
+    ts_frequency = int(inputs_list[20])
 
-    if inputs_list[20] == "''":
+    if inputs_list[21] == "''":
         dss_file = ""
     else:
-        dss_file = inputs_list[20]
+        dss_file = inputs_list[21]
 
-    out_file_name = inputs_list[21]
+    out_file_name = inputs_list[22]
 
-    mode = inputs_list[22]
+    mode = inputs_list[23]
 
     ##############################################################
     # Define derived variables
@@ -144,7 +147,7 @@ if __name__ == "__main__":
     if mode == "test":
         in_rasters_list = raster_list
     else:
-        rasters_list = generate_raster_list(in_workspace)
+        rasters_list = generate_raster_list(in_workspace, raster_format)
         in_rasters_list = filter_monthly(rasters_list)
 
     # Determine the length of the list of rasters
@@ -158,7 +161,6 @@ if __name__ == "__main__":
     print("There are {0} rasters to process.".format(len_raster_list))
 
     if write_to_file_flag:
-
         message = "Writing rasters to {0} only.".format(
             os.path.join(out_workspace, out_raster_list_file_name)
         )
@@ -168,7 +170,6 @@ if __name__ == "__main__":
         write_rasters_to_file(in_rasters_list, out_workspace, out_raster_list_file_name)
 
     if not write_to_file_only:
-
         # Count number of polygons in aoi feature class
         feature_count = count_features(aoi_feature)
 
