@@ -10,7 +10,7 @@ from processing import (
 )
 
 
-def generate_raster_list(in_workspace):
+def generate_raster_list(in_workspace, raster_format):
     """
     Generate a list of rasters from workspace
 
@@ -33,10 +33,10 @@ def generate_raster_list(in_workspace):
     workspace_desc = arcpy.Describe(in_workspace)
 
     if workspace_desc.dataType == "Workspace":
-        rasters_list = get_all_rasters_from_geodatabase(in_workspace)
+        rasters_list = get_all_rasters_from_workspace(in_workspace)
 
     elif workspace_desc.dataType == "Folder":
-        rasters_list = get_all_rasters_from_folders(in_workspace)
+        rasters_list = get_all_rasters_from_folders(in_workspace, raster_format)
 
     elif workspace_desc.dataType == "TextFile":
         rasters_list = get_all_rasters_from_file(in_workspace)
@@ -47,12 +47,12 @@ def generate_raster_list(in_workspace):
     return rasters_list
 
 
-def get_all_rasters_from_geodatabase(in_workspace):
+def get_all_rasters_from_workspace(in_workspace):
     """
     Generate a list of all rasters in geodatabase.
     """
     arcpy.env.workspace = in_workspace
-    list_rasters = arcpy.ListRasters("*", "All")
+    list_rasters = arcpy.ListRasters()
 
     return sorted(list_rasters)
 
@@ -78,6 +78,7 @@ def get_properties_from_raster(in_raster):
 
     return in_raster_name, num_rows, num_cols, x_min, y_min, x_max, y_max
 
+
 def count_features(in_feature):
     """
     Count the number of features in a feature class
@@ -90,13 +91,10 @@ def clip_raster(in_raster, clip_feature, out_workspace):
     Clip a raster to the geometry of the boundary of the feature class
     provided and return the name of the clipped raster.
     """
-
     # Use the input raster name to generate a default output name
     in_raster_name, in_raster_ext = os.path.splitext(os.path.basename(in_raster))
 
-    out_raster_name = "{}_clip{}".format(
-        in_raster_name, ".bil" if in_raster_ext == "" else in_raster_ext
-    )
+    out_raster_name = "{}_clip{}".format(in_raster_name, ".bil")
     out_clip_raster = os.path.join(out_workspace, out_raster_name)
 
     if not os.path.exists(out_clip_raster):
