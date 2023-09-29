@@ -7,7 +7,7 @@ import pandas as pd
 import multiprocessing as mp
 
 
-def get_all_rasters_from_folders(in_workspace, raster_format=".bil"):
+def get_all_rasters_from_folders(in_workspace, raster_format):
     """
     Generate a list of all rasters in subfolders of the parent directory.
     """
