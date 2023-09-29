@@ -1,14 +1,18 @@
 # input workspace. this could be a geodatabase, folder, list of folders, or a text file
-F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\RastersToProcess.txt
+#E:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\RastersToProcess.txt
+E:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\Clipped
+
+# raster format e.g. bil for PRISM or asc for BCM
+bil
 
 # flag telling program to write names of rasters to process to a file
-False
+True
 
-# out_raster_list_file_name 
+# file name to output list of rasters  
 RastersToProcess.txt
 
 # write_to_file_only
-False
+True
 
 # in_units
 millimeters
@@ -17,13 +21,13 @@ millimeters
 inches
 
 # aoi_feature
-F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\C2VSimFG_Elements_SmallWatersheds_GCS.shp
+E:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip\C2VSimFG_Elements_SmallWatersheds_GCS.shp
 
 # aoi_id_field
 ModelID
 
 # out_workspace
-F:\Tyler\DWR\SGMP\Modeling\C2VSimFG\PRISMPrecip
+E:\Tyler\DWR\SGMP\Modeling
 
 # project_short_name
 C2VSim Fine Grid (C2VSimFG)
@@ -63,7 +67,7 @@ disclaimer.txt
 # Enter any number if time-tracking option is on
 0
 
-# dss_file (blank if dss_file is not used
+# dss_file (blank if dss_file is not used)
 # Writing to a dss file is not currently supported
 ''
 
